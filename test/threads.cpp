@@ -1,3 +1,21 @@
+/****************************************************************************
+  Copyright (C) 2015 Karol Roslaniec <mariacpp@roslaniec.net>
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not see <http://www.gnu.org/licenses>
+  or write to the Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*****************************************************************************/
 #include <mariacpp/lib.hpp>
 #include <mariacpp/connection.hpp>
 #include <mariacpp/exception.hpp>
@@ -35,10 +53,6 @@ thread_start(void *arg)
 {
     // It's very important to call thread_init() method
     MariaCpp::scoped_thread_init maria_thread;
-    if (MariaCpp::thread_safe())
-        std::clog << "MariaDB library is thread safe: OK" << std::endl;
-    else
-        std::cerr << "Ups... MariaDB library is NOT thread safe!" << std::endl;
 
     thread_info *tinfo = reinterpret_cast<thread_info *>(arg);
     const int tn = tinfo->thread_num;
@@ -82,6 +96,10 @@ int main()
     // In multithreaded MariaDB environment you MUST call library_init()
     // method from main thread before creating other threads!
     MariaCpp::scoped_library_init maria_lib_init;
+    if (MariaCpp::thread_safe())
+        std::clog << "MariaDB library is thread safe: OK" << std::endl;
+    else
+        std::cerr << "Ups... MariaDB library is NOT thread safe!" << std::endl;
 
     const char *uri = std::getenv("TEST_DB_URI");
     const char *user = std::getenv("TEST_DB_USER");
