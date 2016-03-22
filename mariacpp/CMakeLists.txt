@@ -1,0 +1,2 @@
+file(GLOB HEADERS *.hpp)
+INSTALL(FILES ${HEADERS} DESTINATION include/mariacpp)
