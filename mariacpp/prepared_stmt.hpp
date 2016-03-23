@@ -135,7 +135,7 @@ public:
     
     void setUBigInt(idx_t col, uint64_t value);
 
-    void setBlob(idx_t col, const std::string &value);
+    void setBlob(idx_t col, const std::string &v);
     
     void setBoolean(idx_t col, bool value);
     
@@ -143,17 +143,20 @@ public:
 
     void setFloat(idx_t col, float value);
 
-    // This is special: str==NULL is allowed! But setString is safer
-    void setCString(idx_t col, const char *str);
+    // This is special: str==NULL is allowed
+    void setString(idx_t col, const char *str);
     
     void setString(idx_t col, const std::string &str);
     
     void setBinary(idx_t col, const std::string &v)
         { return setBlob(col, v); }
     
+    void setChar(idx_t col, char c)
+        { return setString(col, std::string(1, c)); }
+
     void setChar(idx_t col, const std::string &v)
         { return setString(col, v); }
-    
+
     void setText(idx_t col, const std::string &v)
         { return setString(col, v); }
     
@@ -201,9 +204,10 @@ private:
     // Noncopyable
     PreparedStatement(const PreparedStatement &);
     void operator=(PreparedStatement &);
+
     // Implicit convertion from char* to std::string not allowed
     // Please use setCString(idx_t, const char *) instead!
-    void setString(idx_t col, const char *str);
+    // void setString(idx_t col, const char *str);
 
     void throw_exception();
 

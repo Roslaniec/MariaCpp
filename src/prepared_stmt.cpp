@@ -328,7 +328,7 @@ PreparedStatement::setFloat(idx_t col, float value)
     
 
 void
-PreparedStatement::setCString(idx_t col, const char *str)
+PreparedStatement::setString(idx_t col, const char *str)
 {
     if (param(col).setCString(str)) _bind_params = true;
 }

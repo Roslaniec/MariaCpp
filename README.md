@@ -61,7 +61,7 @@ int main()
 
         assert(3 == stmt->param_count());
         stmt->setInt(0, 1);
-        stmt->setCString(1, "string-1");
+        stmt->setString(1, "string-1");
         stmt->setDateTime(2, Time("2016-03-23 02:41"));
         stmt->execute();
 

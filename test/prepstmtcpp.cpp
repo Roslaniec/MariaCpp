@@ -50,7 +50,7 @@ int test(const char *uri, const char *user, const char *passwd)
         // C++-style param binding
         assert(3 == stmt->param_count());
         stmt->setInt(0, 1);
-        stmt->setCString(1, "a");
+        stmt->setString(1, "a");
         stmt->execute();
 
         stmt->setInt(0, 2);
@@ -58,12 +58,12 @@ int test(const char *uri, const char *user, const char *passwd)
         stmt->execute();
 
         stmt->setInt(0, 3);
-        stmt->setCString(1, "c");
+        stmt->setString(1, "c");
         stmt->setTime(2, MariaCpp::Time("2015-08-24"));
         stmt->execute();
 
         stmt->setInt(0, 4);
-        stmt->setCString(1, NULL);
+        stmt->setString(1, NULL);
         // stmt->setNull(1);
         stmt->setTime(2, MariaCpp::Time("2016-01-22"));
         stmt->execute();
