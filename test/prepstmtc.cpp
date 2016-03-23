@@ -86,7 +86,7 @@ int test(const char *uri, const char *user, const char *passwd)
         
         // Select results using C-style result binding        
         std::clog << "Selecting from DB:" << std::endl;
-        stmt->prepare("SELECT id, label, d FROM test ORDER BY id ASC");
+        stmt.reset(conn.prepare("SELECT id, label, d FROM test ORDER BY id"));
         stmt->bind_result(bind);
         stmt->execute();
         while (stmt->fetch()) {
