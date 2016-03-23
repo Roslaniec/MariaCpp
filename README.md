@@ -77,8 +77,7 @@ int main()
             std::cout << ", s = ";
             if (stmt->isNull(1)) std::cout << "NULL";
             else std::cout << stmt->getString(1);
-            std::cout << ", date = ";
-            std::cout << stmt->getTime(2) ;
+            std::cout << ", d = " << stmt->getTime(2) ;
             std::cout << std::endl;
         }
         conn.close();
@@ -90,7 +89,8 @@ int main()
 }
 ```
 
-
+    i = 1, s = string-1, d = 2016-03-23 02:41:00
+    i = 2, s = NULL, d = 2015-02-21 12:45:51
 
 FAQ
 ---
