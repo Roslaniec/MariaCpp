@@ -28,10 +28,10 @@ These tests require working connection to MariaDB/MySQL database with
 permission to create temporary table.
 By default, it will connect with following credentials:
 
-* host: _localhost_
-* user: _test_
+* host: localhost
+* user: test
 * password:
-* schema: _test_
+* schema: test
 
 You can modify it by changing cmake variables:
 `TEST_DB_URI`, `TEST_DB_USER`, `TEST_DB_PASSWD`.
