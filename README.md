@@ -7,7 +7,7 @@ MariaCpp is C++ library that lets you connect to the MariaDB Server
 Major features of MariaCpp
 --------------------------
 
-*   __LGPL__ license
+*   __LGPL__ (with static link exception) license
 
 *   thin C++ wrapper around _MariaDB Connector/C_ (C-API);
     _thin_ means that C++ objects have none (or minimal) internal state,
@@ -98,7 +98,7 @@ FAQ
 **Q**: There exists already MySQL Connector/C++. What's the benefit of MariaCpp?
 
 **A**: The primary difference is a license: MySQL Connector/C++ is __GPL__.
-   MariaCpp is licensed as LGPL (__Lesser GPL__).
+   MariaCpp is licensed as LGPL (__Lesser GPL__) with static link exception.
    Other difference is that _MySQL Connector/C++_ is based on JDBC 4.0 API,
    while MariaCpp API is based on  _MariaDB Connector/C_.
    Nevertheless, migration from MySQL Connector/C++ might be surprisingly easy.
