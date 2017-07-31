@@ -26,6 +26,10 @@
 #include <iostream>
 #include <memory>
 
+#if __cplusplus < 201103L
+# define unique_ptr auto_ptr
+#endif
+
 
 using namespace MariaCpp;
 
@@ -54,7 +58,7 @@ int main()
         
         conn.query("CREATE TEMPORARY TABLE test "
                     "(i INT, s CHAR(15), d DATETIME)");
-        std::auto_ptr<PreparedStatement> stmt(
+        std::unique_ptr<PreparedStatement> stmt(
             conn.prepare("INSERT INTO test (i,s,d) values(?,?,?)"));
 
         assert(3 == stmt->param_count());

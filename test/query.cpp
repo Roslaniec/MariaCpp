@@ -25,6 +25,10 @@
 #include <iostream>
 #include <memory>
 
+#if __cplusplus < 201103L
+# define unique_ptr auto_ptr
+#endif
+
 
 int test(const char *uri, const char *user, const char *passwd)
 {
@@ -48,7 +52,7 @@ int test(const char *uri, const char *user, const char *passwd)
         std::clog << "Selecting from DB:" << std::endl;
         conn.query("SELECT id, label, d FROM test ORDER BY id ASC");
         // After infoking SELECT query, you must use {store/use}_result()
-        std::auto_ptr<MariaCpp::ResultSet> res(conn.store_result());
+        std::unique_ptr<MariaCpp::ResultSet> res(conn.store_result());
         // next() is an alias for fetch_row()
         while (res.get() && res->next()) {
             std::cout << "id = " << res->getInt(0)

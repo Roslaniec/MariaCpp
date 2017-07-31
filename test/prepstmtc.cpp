@@ -26,6 +26,10 @@
 #include <iostream>
 #include <memory>
 
+#if __cplusplus < 201103L
+# define unique_ptr auto_ptr
+#endif
+
 
 int test(const char *uri, const char *user, const char *passwd)
 {
@@ -43,7 +47,7 @@ int test(const char *uri, const char *user, const char *passwd)
                     "(id INT, label CHAR(15), d DATE)");
         std::clog << "Temporary table created." << std::endl;
 
-        std::auto_ptr<MariaCpp::PreparedStatement> stmt(
+        std::unique_ptr<MariaCpp::PreparedStatement> stmt(
             conn.prepare("INSERT INTO test (id,label,d) values(?,?,?)"));
 
         // C-style param binding

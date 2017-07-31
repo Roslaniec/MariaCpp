@@ -25,8 +25,8 @@
 #include <memory>
 #include <sstream>
 
-#if __cplusplus >= 201103L
-# define auto_ptr unique_ptr
+#if __cplusplus < 201103L
+# define unique_ptr auto_ptr
 #endif
 
 namespace MariaCpp {
@@ -59,6 +59,16 @@ Connection::connect(const Uri &uri, const char *usr, const char *passwd,
     
     return connect(uri.host(), usr, passwd, uri.schema(), uri.port(),
                    uri.socket(), clientflag);
+}
+
+
+void
+Connection::close()
+{
+    // Calling mysql_close() twice would crash MariaDB Connector/C,
+    // therefore we have to protect against it
+    if (mysql.methods) mysql_close(&mysql);
+    mysql.methods = NULL;
 }
 
 
@@ -147,7 +157,7 @@ Connection::options(enum mysql_option option, const void *arg)
 PreparedStatement *
 Connection::prepare(const std::string &sql)
 {
-    std::auto_ptr<PreparedStatement> res(stmt_init());
+    std::unique_ptr<PreparedStatement> res(stmt_init());
     res->prepare(sql);
     return res.release();
 }

@@ -49,8 +49,7 @@ public:
     const char *character_set_name()
         { return mysql_character_set_name(&mysql); }
         
-    void close()
-        { mysql_close(&mysql); }
+    void close();
 
     void commit()
         { CC(); if (mysql_commit(&mysql)) throw_exception(); }
@@ -65,12 +64,6 @@ public:
                  unsigned int port,
                  const char *unix_socket,
                  unsigned long clientflag);
-    
-    void create_db(const char *db)
-        { CC(); if (mysql_create_db(&mysql, db)) throw_exception(); }
-    
-    void drop_db(const char *db)
-        { CC(); if (mysql_drop_db(&mysql, db)) throw_exception(); }
     
     void dump_debug_info()
         { CC(); if (mysql_dump_debug_info(&mysql)) throw_exception(); }

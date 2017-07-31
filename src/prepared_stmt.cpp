@@ -26,8 +26,8 @@
 #include <memory>
 #include <vector>
 
-#if __cplusplus >= 201103L
-# define auto_ptr unique_ptr
+#if __cplusplus < 201103L
+# define unique_ptr auto_ptr
 #endif
 
 namespace MariaCpp {
@@ -144,7 +144,7 @@ PreparedStatement::fetch(bool *truncated)
         attr_set(STMT_ATTR_UPDATE_MAX_LENGTH, &upd_max_len);
         store_result();
         const size_t count = field_count();
-        std::auto_ptr<ResultSet> rs(result_metadata());
+        std::unique_ptr<ResultSet> rs(result_metadata());
         if (count && rs.get()) {            
             _results = new Bind[count]();
             std::vector<MYSQL_BIND> par(count);

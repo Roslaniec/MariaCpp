@@ -62,7 +62,7 @@ Bind::Buffer::alloc(bool &heap, size_t len)
     _data = std::malloc(len);
     if (!_data) throw Exception("Out of memory",
                                 CR_OUT_OF_MEMORY,
-                                SQLSTATE_UNKNOWN);
+                                "HY000");
     _size = len;
     return _data;
 }
