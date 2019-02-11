@@ -24,17 +24,18 @@
 #include <string.h>
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#ifndef SEC_PART_DIGITS
+#define SEC_PART_DIGITS 6
+#endif
 
-size_t mariadb_time_to_string(const MYSQL_TIME *tm, char *time_str, size_t len,
-                              unsigned int digits)
+size_t mariacpp_time_to_string(const MYSQL_TIME *tm, char *time_str, size_t len)
 {
   size_t length;
 
   if (!time_str || !len)
     return 0;
 
-  if (digits == AUTO_SEC_PART_DIGITS)
-    digits= MIN((tm->second_part) ? SEC_PART_DIGITS : 0, 15);
+  unsigned int digits= MIN((tm->second_part) ? SEC_PART_DIGITS : 0, 15);
 
   switch(tm->time_type) {
     case MYSQL_TIMESTAMP_DATE:
@@ -64,7 +65,7 @@ size_t mariadb_time_to_string(const MYSQL_TIME *tm, char *time_str, size_t len,
 }
 
 // Copied from my_stmt_codec.c
-my_bool mariadb_str_to_TIME(const char *str, size_t length, MYSQL_TIME *tm)
+my_bool mariacpp_str_to_TIME(const char *str, size_t length, MYSQL_TIME *tm)
 {
   my_bool is_time=0, is_date=0, has_time_frac=0;
   char *p= (char *)str;

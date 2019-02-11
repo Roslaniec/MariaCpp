@@ -20,9 +20,8 @@
 #include <ostream>
 
 extern "C" {
-size_t mariadb_time_to_string(const MYSQL_TIME *tm, char *time_str, size_t len,
-                              unsigned int digits);
-my_bool mariadb_str_to_TIME(const char *str, size_t length, MYSQL_TIME *tm);
+size_t mariacpp_time_to_string(const MYSQL_TIME *tm, char *time_str,size_t len);
+my_bool mariacpp_str_to_TIME(const char *str, size_t length, MYSQL_TIME *tm);
 }
 
 namespace MariaCpp {
@@ -31,7 +30,7 @@ namespace MariaCpp {
 Time::Time(const std::string &str)
     : MYSQL_TIME()
 {
-    if (mariadb_str_to_TIME(str.data(), str.length(), this))
+    if (mariacpp_str_to_TIME(str.data(), str.length(), this))
         time_type = MYSQL_TIMESTAMP_ERROR;
 }
 
@@ -88,8 +87,7 @@ void
 Time::print(std::ostream &os) const
 {
     char buff[40];
-    size_t len = mariadb_time_to_string(this, buff, sizeof(buff)-1,
-                                        AUTO_SEC_PART_DIGITS);
+    size_t len = mariacpp_time_to_string(this, buff, sizeof(buff)-1);
     buff[len] = '\0';
     os << buff;
 }
