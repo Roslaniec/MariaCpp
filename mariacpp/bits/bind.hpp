@@ -108,6 +108,8 @@ private:
 
     inline bool setTime(const Time &time, enum_field_types type);
 
+    inline void throw_unsupported_type() const;
+
     struct Buffer {
         typedef bool heap_t;
         inline void *data(const heap_t &heap) const;

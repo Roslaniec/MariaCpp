@@ -95,7 +95,7 @@ PreparedStatement::close()
 {
     if (_stmt && mysql_stmt_close(_stmt))
         throw Exception(_conn.error_str(), _conn.errorno(), _conn.sqlstate());
-    _stmt = __null;
+    _stmt = nullptr;
 }
 
 
@@ -186,7 +186,7 @@ PreparedStatement::result_metadata()
 {
     MYSQL_RES *res = mysql_stmt_result_metadata(_stmt);
     if (!res && errorno()) throw_exception();
-    return res ? new ResultSet(_conn, res) : __null;
+    return res ? new ResultSet(_conn, res) : nullptr;
 }
     
 

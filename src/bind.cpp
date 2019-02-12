@@ -95,6 +95,14 @@ Bind::~Bind()
 }
 
 
+void
+Bind::throw_unsupported_type() const {
+    throw Exception("Using unsupported bind type",
+                    CR_UNSUPPORTED_PARAM_TYPE,
+                    "HY000");
+}
+
+
 Bind::operator MYSQL_BIND()
 {
     MYSQL_BIND res = MYSQL_BIND();
@@ -148,7 +156,7 @@ Bind::init(MYSQL_FIELD *field)
     case MYSQL_TYPE_DATE:
     case MYSQL_TYPE_TIME:
     case MYSQL_TYPE_DATETIME: _buffer.alloc(_heap, sizeof(MYSQL_TIME)); break;
-    case MAX_NO_FIELD_TYPES:  break;
+    default:                  throw_unsupported_type();
     }
     return *this;
 }
@@ -408,8 +416,8 @@ Bind::getString() const
     case MYSQL_TYPE_DATETIME:
         os << Time(*reinterpret_cast<const MYSQL_TIME *>(data));
         break;
-    case MAX_NO_FIELD_TYPES: break;
-        // default: break;
+    default:
+        throw_unsupported_type();
     }
     return os.str();
 }
@@ -456,8 +464,9 @@ Bind::getBigInt() const
     case MYSQL_TYPE_DATE:
     case MYSQL_TYPE_TIME:
     case MYSQL_TYPE_DATETIME:
-    case MAX_NO_FIELD_TYPES:  break;
-        // default: break;
+        return 0; // TODO: convert DATE/TIME to int
+    default:
+        throw_unsupported_type();
     }
     return 0;
 }
@@ -504,9 +513,9 @@ Bind::getUBigInt() const
     case MYSQL_TYPE_DATE:
     case MYSQL_TYPE_TIME:
     case MYSQL_TYPE_DATETIME:
-        
-    case MAX_NO_FIELD_TYPES:   break;
-        // default: break;
+        return 0; // TODO: convert DATE/TIME to int
+    default:
+        throw_unsupported_type();
     }
     return 0;
 }
@@ -548,8 +557,8 @@ Bind::getDateTime() const
     case MYSQL_TYPE_TIME:
     case MYSQL_TYPE_DATETIME:
         return Time(*reinterpret_cast<const MYSQL_TIME *>(data));
-    case MAX_NO_FIELD_TYPES:   break;
-        // default: break;
+    default:
+        throw_unsupported_type();
     }
     return Time::none();
 }

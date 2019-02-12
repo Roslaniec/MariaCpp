@@ -21,6 +21,7 @@
 
 #include <mysql.h>
 #include <iosfwd>
+#include <string>
 
 namespace MariaCpp {
 
