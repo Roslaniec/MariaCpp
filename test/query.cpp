@@ -43,10 +43,13 @@ int test(const char *uri, const char *user, const char *passwd)
         std::clog << "Connected." << std::endl;
         
         conn.query("CREATE TEMPORARY TABLE test"
-                    "(id INT, label CHAR(15), d DATE)");
+                    "(id INT, label CHAR(15), d DATETIME(3))");
         std::clog << "Temporary table created." << std::endl;
         
-        conn.query("INSERT INTO test(id, label) VALUES (1,'a'),(2,'b')");
+        conn.query("INSERT INTO test(id, label, d) VALUES"
+                   " (1,'a', NULL)"
+                   ",(2,'b', FROM_UNIXTIME(1575067490.234))"
+                   ",(3, 'c', NOW(3))");
         std::clog << "Sample data inserted" << std::endl;
 
         std::clog << "Selecting from DB:" << std::endl;
