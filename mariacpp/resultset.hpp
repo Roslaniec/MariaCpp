@@ -34,7 +34,7 @@ public:
     ResultSet(Connection &conn, MYSQL_RES *res)
         : _conn(conn), _res(res), _row(), _lengths() {}
 
-    ~ResultSet() { free_result(); }
+    ~ResultSet() { if (_res) mysql_free_result(_res); }
 
     void data_seek(my_ulonglong offset)
         { return mysql_data_seek(_res, offset); }
@@ -63,9 +63,12 @@ public:
     MYSQL_FIELD_OFFSET field_tell()
         { return mysql_field_tell(_res); }
 
+    void free_result()
+        { mysql_free_result(_res); _res = nullptr; }
+
     bool next()
         { return fetch_row(); }
-    
+
     unsigned int num_fields() const
         { return mysql_num_fields(_res); }
 
@@ -106,9 +109,23 @@ public:
     unsigned long length(unsigned col) const
         { assert_col(col); return fetch_lengths() ? _lengths[col] : 0; }
     
-private:
-    void free_result();
+#   ifdef MARIADB_VERSION_ID
+    int async_status() const;
 
+    void free_result_start();
+
+    void free_result_cont(int status);
+
+    MYSQL_ROW fetch_row_start();
+
+    MYSQL_ROW fetch_row_cont(int status);
+
+    bool next_start() { return fetch_row_start(); }
+
+    bool next_cont(int status) { return fetch_row_cont(status); }
+#   endif /* MARIADB_VERSION_ID */
+
+private:
     inline void assert_col(unsigned col) const;
 
     // Noncopyable

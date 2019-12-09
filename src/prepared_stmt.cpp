@@ -47,7 +47,7 @@ PreparedStatement::~PreparedStatement()
 {
     delete [] _params;
     delete [] _results;
-    if (_stmt) mysql_stmt_close(_stmt);
+    if (_stmt) mysql_stmt_close(_stmt); // No throw even on error (dtor!)
 }
 
 
@@ -93,9 +93,10 @@ PreparedStatement::bind_result(MYSQL_BIND *bind)
 void
 PreparedStatement::close()
 {
-    if (_stmt && mysql_stmt_close(_stmt))
-        throw Exception(_conn.error_str(), _conn.errorno(), _conn.sqlstate());
+    // if (!_stmt) return; // is needed?
+    my_bool res = mysql_stmt_close(_stmt);
     _stmt = nullptr;
+    if (res) _conn.throw_exception(); // must throw from _conn! (_stmt invalid)
 }
 
 
@@ -104,12 +105,12 @@ PreparedStatement::prepare(const std::string &sql)
 {
     assert(!_bind_params && !_params);
     if (mysql_stmt_prepare(_stmt, sql.data(), sql.size())) throw_exception();
+    do_reset_bind();
 }
 
 
-void PreparedStatement::reset()
+void PreparedStatement::do_reset_bind()
 {
-    if (mysql_stmt_reset(_stmt)) throw_exception();
     _bind_params = false;
     _bind_results = true;
     delete [] _params;
@@ -117,42 +118,60 @@ void PreparedStatement::reset()
     _params = _results = NULL;
 }
 
+
+void PreparedStatement::reset()
+{
+    if (mysql_stmt_reset(_stmt)) throw_exception();
+    do_reset_bind();
+}
+
+
+void
+PreparedStatement::do_bind_params()
+{
+    assert(_bind_params && _params);
+    _bind_params = false;
+    const size_t count = param_count();
+    if (count) {
+        std::vector<MYSQL_BIND> par(count);
+        for (unsigned i = 0; i < count; ++i) par[i] = _params[i];
+        bind_param(&par[0]);
+    }
+}
+
+
 void
 PreparedStatement::execute()
 {
-    if (_bind_params) {
-        assert(_params);
-        _bind_params = false;
-        const size_t count = param_count();
-        if (count) {
-            std::vector<MYSQL_BIND> par(count);
-            for (unsigned i = 0; i < count; ++i) par[i] = _params[i];
-            bind_param(&par[0]);
-        }
-    }
+    if (_bind_params) do_bind_params();
     if (mysql_stmt_execute(_stmt)) throw_exception();
+}
+
+
+void
+PreparedStatement::do_bind_results()
+{
+    assert(_bind_results && !_results);
+    _bind_results = false;
+    my_bool upd_max_len = true;
+    attr_set(STMT_ATTR_UPDATE_MAX_LENGTH, &upd_max_len);
+    store_result();
+    const size_t count = field_count();
+    std::unique_ptr<ResultSet> rs(result_metadata());
+    if (count && rs.get()) {
+        _results = new Bind[count]();
+        std::vector<MYSQL_BIND> par(count);
+        for (unsigned i = 0; i < count; ++i)
+            par[i] = _results[i].init(rs->fetch_field_direct(i));
+        bind_result(&par[0]);
+    }
 }
 
 
 bool
 PreparedStatement::fetch(bool *truncated)
 {
-    if (_bind_results) {
-        assert(!_results);
-        _bind_results = false;
-        my_bool upd_max_len = true;
-        attr_set(STMT_ATTR_UPDATE_MAX_LENGTH, &upd_max_len);
-        store_result();
-        const size_t count = field_count();
-        std::unique_ptr<ResultSet> rs(result_metadata());
-        if (count && rs.get()) {            
-            _results = new Bind[count]();
-            std::vector<MYSQL_BIND> par(count);
-            for (unsigned i = 0; i < count; ++i) 
-                par[i] = _results[i].init(rs->fetch_field_direct(i));
-            bind_result(&par[0]);
-        }
-    }
+    if (_bind_results) do_bind_results();
     int res = mysql_stmt_fetch(_stmt);
     if (1 == res) throw_exception();
     if (MYSQL_NO_DATA == res) return false;
@@ -416,6 +435,223 @@ PreparedStatement::getTimeStamp(idx_t col) const
 {
     return getDateTime(col);
 }
+
+
+#ifdef MARIADB_VERSION_ID
+//
+//  MariaDB-specific non-blocking functions:
+//
+
+int
+PreparedStatement::async_status() const
+{
+    return _conn.async_status();
+}
+
+
+bool
+PreparedStatement::next_result_start()
+{
+    assert(!_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_next_result_start(&ret, _stmt);
+    if (!_conn._async_status && 0 < ret) throw_exception();
+    return !ret;
+}
+
+
+bool
+PreparedStatement::next_result_cont(int status)
+{
+    assert(async_status());
+    int ret;
+    _conn._async_status = mysql_stmt_next_result_cont(&ret, _stmt, status);
+    if (!_conn._async_status && 0 < ret) throw_exception();
+    return !ret;
+}
+
+
+void
+PreparedStatement::prepare_start(const char *query, unsigned long length)
+{
+    assert(!_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_prepare_start(&ret, _stmt, query, length);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::prepare_cont(int status)
+{
+    assert(_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_prepare_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::execute_start()
+{
+    assert(!_conn._async_status);
+    if (_bind_params) do_bind_params();
+    int ret;
+    _conn._async_status = mysql_stmt_execute_start(&ret, _stmt);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::execute_cont(int status)
+{
+    assert(_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_execute_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+bool
+PreparedStatement::fetch_start(bool *truncated)
+{
+    assert(!_conn._async_status);
+    // FIXME: do_bind_results() is using synchronous store_result()!
+    if (_bind_results) do_bind_results();
+    int ret;
+    _conn._async_status = mysql_stmt_fetch_start(&ret, _stmt);
+    if (_conn._async_status) return false;
+    if (1 == ret) throw_exception();
+    if (MYSQL_NO_DATA == ret) return false;
+    if (truncated) *truncated = MYSQL_DATA_TRUNCATED & ret;
+    return true;
+}
+
+
+bool
+PreparedStatement::fetch_cont(int status, bool *truncated)
+{
+    assert(_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_fetch_cont(&ret, _stmt, status);
+    if (_conn._async_status) return false;
+    if (1 == ret) throw_exception();
+    if (MYSQL_NO_DATA == ret) return false;
+    if (truncated) *truncated = MYSQL_DATA_TRUNCATED & ret;
+    return true;
+}
+
+
+void
+PreparedStatement::store_result_start()
+{
+    assert(!_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_store_result_start(&ret, _stmt);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::store_result_cont(int status)
+{
+    assert(_conn._async_status);
+    int ret;
+    _conn._async_status = mysql_stmt_store_result_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::close_start()
+{
+    assert(!_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_close_start(&ret, _stmt);
+    if (!_conn._async_status) {
+        _stmt = nullptr;
+        if (ret) _conn.throw_exception();
+    }
+}
+
+
+void
+PreparedStatement::close_cont(int status)
+{
+    assert(_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_close_cont(&ret, _stmt, status);
+    if (!_conn._async_status) {
+        _stmt = nullptr;
+        if (ret) _conn.throw_exception();
+    }
+}
+
+
+void
+PreparedStatement::reset_start()
+{
+    assert(!_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_reset_start(&ret, _stmt);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::reset_cont(int status)
+{
+    assert(_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_reset_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::free_result_start()
+{
+    assert(!_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_free_result_start(&ret, _stmt);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::free_result_cont(int status)
+{
+    assert(_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_free_result_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+
+void
+PreparedStatement::send_long_data_start(unsigned int param_number,
+                                        const char *data, unsigned long len)
+{
+    assert(!_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_send_long_data_start(&ret, _stmt,
+                                                          param_number,
+                                                          data, len);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+
+void
+PreparedStatement::send_long_data_cont(int status)
+{
+    assert(_conn._async_status);
+    my_bool ret;
+    _conn._async_status = mysql_stmt_send_long_data_cont(&ret, _stmt, status);
+    if (!_conn._async_status && ret) throw_exception();
+}
+
+#endif /* MARIADB_VERSION_ID */
 
 
 

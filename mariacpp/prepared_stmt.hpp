@@ -109,6 +109,11 @@ public:
     void store_result()
         { if (mysql_stmt_store_result(_stmt)) throw_exception(); }
     
+#   ifdef MARIADB_VERSION_ID
+    void free_result()
+        { if (mysql_stmt_free_result(_stmt)) throw_exception(); }
+#   endif
+
     // Methods for Connector/C++ style param binding
 
     void setNull(idx_t col);
@@ -200,6 +205,50 @@ public:
 
     Time getTimeStamp(idx_t col) const; // same as getDateTime(col)
 
+#   ifdef MARIADB_VERSION_ID
+    int async_status() const;
+
+    bool next_result_start();
+
+    bool next_result_cont(int status);
+
+    void prepare_start(const std::string &sql)
+        { return prepare_start(sql.data(), sql.length()); }
+
+    void prepare_start(const char *query, unsigned long length);
+
+    void prepare_cont(int status);
+
+    void execute_start();
+
+    void execute_cont(int status);
+
+    bool fetch_start(bool *truncated = 0);
+
+    bool fetch_cont(int status, bool *truncated = 0);
+
+    void store_result_start();
+
+    void store_result_cont(int status);
+
+    void close_start();
+
+    void close_cont(int status);
+
+    void reset_start();
+
+    void reset_cont(int status);
+
+    void free_result_start();
+
+    void free_result_cont(int status);
+
+    void send_long_data_start(unsigned int param_number, const char *data,
+                              unsigned long len);
+
+    void send_long_data_cont(int status);
+#   endif
+
 private:
     // Noncopyable
     PreparedStatement(const PreparedStatement &);
@@ -214,6 +263,12 @@ private:
     inline Bind &param(idx_t col);
 
     inline const Bind &result(idx_t col) const;
+
+    inline void do_reset_bind();
+
+    inline void do_bind_params();
+
+    inline void do_bind_results();
 
     Connection &_conn;
     MYSQL_STMT *_stmt;

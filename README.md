@@ -21,6 +21,8 @@ Major features of MariaCpp
 
 *   supports __multithreading__ (multiple connections to DB)
 
+*   supports __non-blocking__ (a.k.a. __Asynchronous__) API
+
 *   no other dependencies (e.g. no Boost dependency)
 
 

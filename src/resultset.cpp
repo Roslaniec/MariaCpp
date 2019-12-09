@@ -24,13 +24,6 @@
 namespace MariaCpp {
 
 
-void
-ResultSet::free_result()
-{
-    mysql_free_result(_res);
-}
-
-
 MYSQL_ROW
 ResultSet::fetch_row()
 {
@@ -103,7 +96,58 @@ ResultSet::getDouble(unsigned col) const
     if (isNull(col)) return 0;
     return strtod(_row[col], NULL);
 }
-    
+
+
+#ifdef MARIADB_VERSION_ID
+int
+ResultSet::async_status() const
+{
+    return _conn.async_status();
+}
+
+
+void
+ResultSet::free_result_start()
+{
+    assert(!_conn._async_status);
+    _conn._async_status = mysql_free_result_start(_res);
+    if (!_conn._async_status) _res = nullptr;
+}
+
+
+void
+ResultSet::free_result_cont(int status)
+{
+    assert(_conn._async_status);
+    _conn._async_status = mysql_free_result_cont(_res, status);
+    if (!_conn._async_status) _res = nullptr;
+}
+
+
+MYSQL_ROW
+ResultSet::fetch_row_start()
+{
+    assert(!_conn._async_status);
+    _lengths = 0;
+    _conn._async_status = mysql_fetch_row_start(&_row, _res);
+    if (_conn._async_status) return nullptr;
+    if (!_row && _conn.errorno()) _conn.throw_exception();
+    return _row;
+}
+
+
+MYSQL_ROW
+ResultSet::fetch_row_cont(int status)
+{
+    assert(_conn._async_status);
+    _conn._async_status = mysql_fetch_row_cont(&_row, _res, status);
+    if (_conn._async_status) return nullptr;
+    if (!_row && _conn.errorno()) _conn.throw_exception();
+    return _row;
+}
+
+#endif /* MARIADB_VERSION_ID */
+
 
 
 }
