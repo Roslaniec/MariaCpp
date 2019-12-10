@@ -96,7 +96,7 @@ PreparedStatement::close()
 {
     // if (!_stmt) return; // is needed?
     my_bool res = mysql_stmt_close(_stmt);
-    _stmt = nullptr;
+    _stmt = NULL;
     if (res) _conn.throw_exception(); // must throw from _conn! (_stmt invalid)
 }
 
@@ -156,7 +156,9 @@ PreparedStatement::do_bind_results()
     _bind_results = false;
     // We will depend on MYSQL_DATA_TRUNCATED status
     my_bool trunc = false;
+#   if 50700 <= MYSQL_VERSION_ID
     _conn.get_option(MYSQL_REPORT_DATA_TRUNCATION, &trunc);
+#   endif
     if (!trunc) _conn.options(MYSQL_REPORT_DATA_TRUNCATION, &(trunc = true));
     const size_t count = field_count();
     std::unique_ptr<ResultSet> rs(result_metadata());
@@ -228,7 +230,7 @@ PreparedStatement::result_metadata()
 {
     MYSQL_RES *res = mysql_stmt_result_metadata(_stmt);
     if (!res && errorno()) throw_exception();
-    return res ? new ResultSet(_conn, res) : nullptr;
+    return res ? new ResultSet(_conn, res) : NULL;
 }
     
 
@@ -593,7 +595,7 @@ PreparedStatement::close_start()
     my_bool ret;
     _conn._async_status = mysql_stmt_close_start(&ret, _stmt);
     if (!_conn._async_status) {
-        _stmt = nullptr;
+        _stmt = NULL;
         if (ret) _conn.throw_exception();
     }
 }
@@ -606,7 +608,7 @@ PreparedStatement::close_cont(int status)
     my_bool ret;
     _conn._async_status = mysql_stmt_close_cont(&ret, _stmt, status);
     if (!_conn._async_status) {
-        _stmt = nullptr;
+        _stmt = NULL;
         if (ret) _conn.throw_exception();
     }
 }

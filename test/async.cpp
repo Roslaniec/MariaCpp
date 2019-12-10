@@ -36,6 +36,7 @@ int test(const char *uri, const char *user, const char *passwd)
     std::clog << "DB user: " << user << std::endl;
     std::clog << "DB passwd: " << passwd << std::endl;
 
+#   ifdef MARIADB_VERSION_ID
     try {
         MariaCpp::Connection conn;
         unsigned default_timeout= 3;
@@ -96,6 +97,7 @@ int test(const char *uri, const char *user, const char *passwd)
         std::cerr << e << std::endl;
         return 1;
     }
+#   endif
     return 0;
 }
 

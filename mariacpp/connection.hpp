@@ -83,8 +83,10 @@ public:
     const char *get_host_info()
         { return mysql_get_host_info(&mysql); }
 
+#   if 50700 <= MYSQL_VERSION_ID
     void get_option(enum mysql_option option, void *arg)
         { if (mysql_get_option(&mysql, option, arg)) throw_exception(); }
+#   endif
 
     unsigned int get_proto_info()
         { return mysql_get_proto_info(&mysql); }
@@ -150,8 +152,10 @@ public:
     void reload()
         { CC(); if (mysql_reload(&mysql)) throw_exception(); }
 
+#   if 50700 <= MYSQL_VERSION_ID
     void reset_connection()
         { if (mysql_reset_connection(&mysql)) throw_exception(); }
+#   endif
 
     void rollback()
         { CC(); if (mysql_rollback(&mysql)) throw_exception(); }
@@ -159,11 +163,13 @@ public:
     void select_db(const char *db)
         { CC(); if (mysql_select_db(&mysql, db)) throw_exception(); }
 
+#   if 50700 <= MYSQL_VERSION_ID
     std::string session_track_get_first(enum enum_session_state_type type);
 
     // Returns true on success
     bool session_track_get_next(enum enum_session_state_type type,
                                 std::string &res);
+#   endif
 
     void set_character_set(const char *csname)
         { CC(); if (mysql_set_character_set(&mysql, csname)) throw_exception();}

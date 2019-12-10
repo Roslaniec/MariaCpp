@@ -64,7 +64,7 @@ public:
         { return mysql_field_tell(_res); }
 
     void free_result()
-        { mysql_free_result(_res); _res = nullptr; }
+        { mysql_free_result(_res); _res = NULL; }
 
     bool next()
         { return fetch_row(); }

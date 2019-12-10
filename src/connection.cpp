@@ -37,7 +37,9 @@ namespace MariaCpp {
 
 
 Connection::Connection()
+#   ifdef MARIADB_VERSION_ID
     : _async_status()
+#   endif
 {
     mysql_init(&mysql);
 }
@@ -168,6 +170,7 @@ Connection::prepare(const std::string &sql)
 }
 
 
+#if 50700 <= MYSQL_VERSION_ID
 std::string
 Connection::session_track_get_first(enum enum_session_state_type type)
 {
@@ -191,6 +194,7 @@ Connection::session_track_get_next(enum enum_session_state_type type,
     if (!res) str.assign(data, len);
     return !res;
 }
+#endif
 
 
 void
