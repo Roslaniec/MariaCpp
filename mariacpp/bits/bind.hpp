@@ -38,6 +38,14 @@ public:
     
     Bind &init(MYSQL_FIELD *field);
 
+    unsigned long raw_length() const { return _length; }
+
+    unsigned long data_length() const;
+
+    bool error() const { return _error; }
+
+    void realloc(unsigned long length);
+
     bool setNull();
     
     bool setTinyInt(int8_t value);
@@ -125,10 +133,11 @@ private:
     const Bind &operator=(const Bind &); // non-copyable
 
     Buffer _buffer;
-    unsigned long _length;
+    unsigned long _length; // Might be bigger than buffer after fetch()!
     enum_field_types _type;
     my_bool _null;
     my_bool _unsigned;
+    my_bool _error;
     Buffer::heap_t _heap;
 };
 

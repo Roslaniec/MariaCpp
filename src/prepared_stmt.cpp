@@ -37,6 +37,7 @@ PreparedStatement::PreparedStatement(Connection &conn, MYSQL_STMT *stmt)
     , _stmt(stmt)
     , _params()
     , _results()
+    , _truncated()
     , _bind_params()
     , _bind_results(true)
 {
@@ -153,9 +154,10 @@ PreparedStatement::do_bind_results()
 {
     assert(_bind_results && !_results);
     _bind_results = false;
-    my_bool upd_max_len = true;
-    attr_set(STMT_ATTR_UPDATE_MAX_LENGTH, &upd_max_len);
-    store_result();
+    // We will depend on MYSQL_DATA_TRUNCATED status
+    my_bool trunc = false;
+    _conn.get_option(MYSQL_REPORT_DATA_TRUNCATION, &trunc);
+    if (!trunc) _conn.options(MYSQL_REPORT_DATA_TRUNCATION, &(trunc = true));
     const size_t count = field_count();
     std::unique_ptr<ResultSet> rs(result_metadata());
     if (count && rs.get()) {
@@ -168,14 +170,35 @@ PreparedStatement::do_bind_results()
 }
 
 
+void
+PreparedStatement::do_rebind_results()
+{
+    // After fetch(), if data was truncated (ie. BIND.error),
+    // we will increase buffer size and re-fetch truncated field again.
+    const size_t count = field_count();
+    if (!count) return;
+    assert(_results);
+    std::vector<MYSQL_BIND> par(count);
+    for (unsigned i = 0; i < count; ++i) {
+        if (_results[i].error()) {
+            _results[i].realloc(_results[i].raw_length());
+            fetch_column(_results[i], i, 0);
+        }
+        par[i] = _results[i];
+    }
+    bind_result(&par[0]);
+}
+
+
 bool
-PreparedStatement::fetch(bool *truncated)
+PreparedStatement::fetch()
 {
     if (_bind_results) do_bind_results();
     int res = mysql_stmt_fetch(_stmt);
     if (1 == res) throw_exception();
     if (MYSQL_NO_DATA == res) return false;
-    if (truncated) *truncated = MYSQL_DATA_TRUNCATED & res;
+    _truncated =  MYSQL_DATA_TRUNCATED & res;
+    if (_truncated && _results) do_rebind_results();
     return true;
 }
 
@@ -513,23 +536,23 @@ PreparedStatement::execute_cont(int status)
 
 
 bool
-PreparedStatement::fetch_start(bool *truncated)
+PreparedStatement::fetch_start()
 {
     assert(!_conn._async_status);
-    // FIXME: do_bind_results() is using synchronous store_result()!
     if (_bind_results) do_bind_results();
     int ret;
     _conn._async_status = mysql_stmt_fetch_start(&ret, _stmt);
     if (_conn._async_status) return false;
     if (1 == ret) throw_exception();
     if (MYSQL_NO_DATA == ret) return false;
-    if (truncated) *truncated = MYSQL_DATA_TRUNCATED & ret;
-    return true;
+    _truncated =  MYSQL_DATA_TRUNCATED & ret;
+    if (_truncated && _results) do_rebind_results();
+   return true;
 }
 
 
 bool
-PreparedStatement::fetch_cont(int status, bool *truncated)
+PreparedStatement::fetch_cont(int status)
 {
     assert(_conn._async_status);
     int ret;
@@ -537,7 +560,8 @@ PreparedStatement::fetch_cont(int status, bool *truncated)
     if (_conn._async_status) return false;
     if (1 == ret) throw_exception();
     if (MYSQL_NO_DATA == ret) return false;
-    if (truncated) *truncated = MYSQL_DATA_TRUNCATED & ret;
+    _truncated =  MYSQL_DATA_TRUNCATED & ret;
+    if (_truncated && _results) do_rebind_results();
     return true;
 }
 

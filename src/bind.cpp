@@ -55,10 +55,10 @@ Bind::Buffer::alloc(bool &heap, size_t len)
     
     if (len <= _size) return _data;
     if (_data) std::free(_data);
-    if (len <= sizeof(Buffer)) {
-        heap = false;
-        return (void *)this;
-    }
+    // if (len <= sizeof(Buffer)) { // Unreachable code
+    //     heap = false;
+    //     return (void *)this;
+    // }
     _data = std::malloc(len);
     if (!_data) throw Exception("Out of memory",
                                 CR_OUT_OF_MEMORY,
@@ -84,6 +84,7 @@ Bind::Bind()
     , _type(MYSQL_TYPE_NULL)
     , _null(true)
     , _unsigned(false)
+    , _error(false)
     , _heap(false)
 {
 }
@@ -108,11 +109,20 @@ Bind::operator MYSQL_BIND()
     MYSQL_BIND res = MYSQL_BIND();
     res.is_null = &_null;
     res.length = &_length;
+    res.error = &_error;
     res.buffer = _buffer.data(_heap);
     res.buffer_length = _buffer.size(_heap);
     res.buffer_type = _type;
     res.is_unsigned = _unsigned;
     return res;
+}
+
+
+// Should be called only on error, if buffer was too small
+void
+Bind::realloc(unsigned long length)
+{
+    _buffer.alloc(_heap, length);
 }
 
 
@@ -124,7 +134,7 @@ Bind::init(MYSQL_FIELD *field)
     
     _unsigned = field->flags & UNSIGNED_FLAG;
     _type = field->type;
-    
+
     switch(field->type) {
     case MYSQL_TYPE_NULL: break;
     // String types
@@ -159,6 +169,13 @@ Bind::init(MYSQL_FIELD *field)
     default:                  throw_unsupported_type();
     }
     return *this;
+}
+
+
+unsigned long
+Bind::data_length() const
+{
+    return std::min(_length, _buffer.size(_heap));
 }
 
 
@@ -393,7 +410,7 @@ Bind::getString() const
     case MYSQL_TYPE_SET:
     case MYSQL_TYPE_NEWDATE:
     case MYSQL_TYPE_GEOMETRY:
-        return std::string(reinterpret_cast<const char *>(data), _length);
+        return std::string(reinterpret_cast<const char *>(data), data_length());
     case MYSQL_TYPE_TINY:
     case MYSQL_TYPE_SHORT:
     case MYSQL_TYPE_YEAR:
@@ -445,7 +462,7 @@ Bind::getBigInt() const
     case MYSQL_TYPE_SET:
     case MYSQL_TYPE_NEWDATE:
     case MYSQL_TYPE_GEOMETRY:
-        return strtoll(std::string(data, _length).c_str(), NULL, 10);
+        return strtoll(std::string(data, data_length()).c_str(), NULL, 10);
     case MYSQL_TYPE_TINY:
         return *reinterpret_cast<const int8_t *>(data);
     case MYSQL_TYPE_SHORT:
@@ -494,7 +511,7 @@ Bind::getUBigInt() const
     case MYSQL_TYPE_SET:
     case MYSQL_TYPE_NEWDATE:
     case MYSQL_TYPE_GEOMETRY:
-        return strtoull(std::string(data, _length).c_str(), NULL, 10);
+        return strtoull(std::string(data, data_length()).c_str(), NULL, 10);
     case MYSQL_TYPE_TINY:
         return *reinterpret_cast<const uint8_t *>(data);
     case MYSQL_TYPE_SHORT:
@@ -542,7 +559,7 @@ Bind::getDateTime() const
     case MYSQL_TYPE_SET:
     case MYSQL_TYPE_NEWDATE:
     case MYSQL_TYPE_GEOMETRY:
-        return Time(std::string(data, _length));
+        return Time(std::string(data, data_length()));
     case MYSQL_TYPE_TINY:
     case MYSQL_TYPE_SHORT:
     case MYSQL_TYPE_YEAR:

@@ -45,7 +45,7 @@ int test(const char *uri, const char *user, const char *passwd)
         std::clog << "Connected." << std::endl;
         
         conn.query("CREATE TEMPORARY TABLE test"
-                    "(id INT, label CHAR(15), d DATE)");
+                    "(id INT, label CHAR(30), d DATE)");
         std::clog << "Temporary table created." << std::endl;
 
         std::unique_ptr<MariaCpp::PreparedStatement> stmt(
@@ -58,11 +58,11 @@ int test(const char *uri, const char *user, const char *passwd)
         stmt->execute();
 
         stmt->setInt(0, 2);
-        stmt->setString(1, std::string("b"));
+        stmt->setString(1, std::string("b 12345678901234567890"));
         stmt->execute();
 
         stmt->setInt(0, 3);
-        stmt->setString(1, "c");
+        stmt->setString(1, "c 12345678901234567890123");
         stmt->setTime(2, MariaCpp::Time("2015-08-24"));
         stmt->execute();
 

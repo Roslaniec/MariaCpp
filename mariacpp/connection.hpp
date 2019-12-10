@@ -83,6 +83,9 @@ public:
     const char *get_host_info()
         { return mysql_get_host_info(&mysql); }
 
+    void get_option(enum mysql_option option, void *arg)
+        { if (mysql_get_option(&mysql, option, arg)) throw_exception(); }
+
     unsigned int get_proto_info()
         { return mysql_get_proto_info(&mysql); }
 

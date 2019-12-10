@@ -66,8 +66,11 @@ public:
 
     void execute();
 
-    // Info: truncated status must be enabled earlier using mysql_options()
-    bool fetch(bool *truncated = 0);
+    // True if last fetch() was truncated (returned MYSQL_DATA_TRUNCATED)
+    // Is useful only with C-style param binding
+    bool truncated() const { return _truncated; }
+
+    bool fetch();
 
     void fetch_column(Bind &bind, unsigned int column, unsigned long offset);
 
@@ -223,9 +226,9 @@ public:
 
     void execute_cont(int status);
 
-    bool fetch_start(bool *truncated = 0);
+    bool fetch_start();
 
-    bool fetch_cont(int status, bool *truncated = 0);
+    bool fetch_cont(int status);
 
     void store_result_start();
 
@@ -270,10 +273,13 @@ private:
 
     inline void do_bind_results();
 
+    inline void do_rebind_results();
+
     Connection &_conn;
     MYSQL_STMT *_stmt;
     Bind *_params;
     Bind *_results;
+    bool _truncated;
     bool _bind_params; // C++ style binding
     bool _bind_results;
 };
