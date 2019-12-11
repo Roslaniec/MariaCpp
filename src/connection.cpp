@@ -161,10 +161,23 @@ Connection::options(enum mysql_option option, const void *arg)
 }
 
 
+#if 50600 <= MYSQL_VERSION_ID
+void
+Connection::options4(enum mysql_option option,
+                     const void *arg1, const void *arg2)
+{
+    if (!mysql_options4(&mysql, option, arg1, arg2)) return;
+    std::ostringstream msg;
+    msg << "Invalid options argument =" << option;
+    throw InvalidArgumentException(msg.str());
+}
+#endif
+
+
 PreparedStatement *
 Connection::prepare(const std::string &sql)
 {
-    std::unique_ptr<PreparedStatement> res(stmt_init());
+    std::unique_ptr<PreparedStatement> res(new PreparedStatement(*this));
     res->prepare(sql);
     return res.release();
 }
@@ -223,12 +236,12 @@ Connection::stat()
 }
 
 
-PreparedStatement *
+MYSQL_STMT *
 Connection::stmt_init()
 {
     MYSQL_STMT *stmt = mysql_stmt_init(&mysql);
     if (!stmt) throw_exception();
-    return new PreparedStatement(*this, stmt);
+    return stmt;
 }
 
 

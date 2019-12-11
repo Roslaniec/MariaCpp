@@ -35,7 +35,7 @@ class PreparedStatement
 public:
     typedef unsigned int idx_t;
     
-    PreparedStatement(Connection &conn, MYSQL_STMT *stmt);
+    PreparedStatement(Connection &conn);
 
     ~PreparedStatement(); // like close() but cannot throw
 
@@ -77,6 +77,11 @@ public:
     unsigned int field_count() const
         { return mysql_stmt_field_count(_stmt); }
     
+#   if 50500 <= MYSQL_VERSION_ID
+    void free_result()
+        { if (mysql_stmt_free_result(_stmt)) throw_exception(); }
+#   endif
+
     my_ulonglong insert_id() const
         { return mysql_stmt_insert_id(_stmt); }
 
@@ -112,11 +117,6 @@ public:
     void store_result()
         { if (mysql_stmt_store_result(_stmt)) throw_exception(); }
     
-#   ifdef MARIADB_VERSION_ID
-    void free_result()
-        { if (mysql_stmt_free_result(_stmt)) throw_exception(); }
-#   endif
-
     // Methods for Connector/C++ style param binding
 
     void setNull(idx_t col);

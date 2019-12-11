@@ -32,9 +32,9 @@
 
 namespace MariaCpp {
 
-PreparedStatement::PreparedStatement(Connection &conn, MYSQL_STMT *stmt)
+PreparedStatement::PreparedStatement(Connection &conn)
     : _conn(conn)
-    , _stmt(stmt)
+    , _stmt(conn.stmt_init())
     , _params()
     , _results()
     , _truncated()

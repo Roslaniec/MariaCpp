@@ -75,6 +75,11 @@ public:
     my_ulonglong num_rows() const
         { return mysql_num_rows(_res); }
 
+#   if 80000 <= LIBMYSQL_VERSION_ID
+    enum enum_resultset_metadata result_metadata(MYSQL_RES *result)
+        { return mysql_result_metadata(_res); }
+#   endif
+
     MYSQL_ROW_OFFSET row_seek(MYSQL_ROW_OFFSET offset)
         { return mysql_row_seek(_res, offset); }
 

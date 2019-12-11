@@ -47,11 +47,11 @@ int test(const char *uri, const char *user, const char *passwd)
                     "(id INT, label CHAR(15), d DATE)");
         std::clog << "Temporary table created." << std::endl;
 
-        std::unique_ptr<MariaCpp::PreparedStatement> stmt(
-            conn.prepare("INSERT INTO test (id,label,d) values(?,?,?)"));
+        MariaCpp::PreparedStatement stmt(conn);
+        stmt.prepare("INSERT INTO test (id,label,d) values(?,?,?)");
 
         // C-style param binding
-        assert(3 == stmt->param_count());
+        assert(3 == stmt.param_count());
         int data_id = 1;
         char data_label = 'a';
         MYSQL_TIME data_d = MYSQL_TIME();
@@ -67,12 +67,12 @@ int test(const char *uri, const char *user, const char *passwd)
         bind[2].buffer = (char *)&data_d;
         // bind[2].buffer_length = sizeof(MYSQL_TIME);
         bind[2].is_null = &null_d;
-        stmt->bind_param(bind);
-        stmt->execute();
+        stmt.bind_param(bind);
+        stmt.execute();
         
         data_id = 2;
         data_label = 'b';
-        stmt->execute();
+        stmt.execute();
 
         data_id = 3;
         data_label = 'c';
@@ -80,20 +80,22 @@ int test(const char *uri, const char *user, const char *passwd)
         data_d.month = 8;
         data_d.day = 24;
         null_d = false;
-        stmt->execute();
+        stmt.execute();
 
         data_id = 4;
         data_label = 'd';
         data_d.year = 2016;
         data_d.month = 1;
-        stmt->execute();
+        stmt.execute();
+        std::clog << "Insert done." << std::endl;
         
         // Select results using C-style result binding        
         std::clog << "Selecting from DB:" << std::endl;
-        stmt.reset(conn.prepare("SELECT id, label, d FROM test ORDER BY id"));
-        stmt->bind_result(bind);
-        stmt->execute();
-        while (stmt->fetch()) {
+
+        stmt.prepare("SELECT id, label, d FROM test ORDER BY id");
+        stmt.bind_result(bind);
+        stmt.execute();
+        while (stmt.fetch()) {
             std::cout << "id = " << data_id
                       << ", label = '" << data_label << "'"
                       << ", date = ";

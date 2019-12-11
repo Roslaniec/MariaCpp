@@ -48,12 +48,14 @@ public:
 
     const char *character_set_name()
         { return mysql_character_set_name(&mysql); }
-        
+
     void close();
 
     void commit()
         { CC(); if (mysql_commit(&mysql)) throw_exception(); }
 
+    // mysql_connect() is depricated.
+    // In MariaCpp: connect() is an alias for real_connect().
     void connect(const Uri &uri, const char *usr, const char *passwd,
                  unsigned long clientflag = 0);
 
@@ -73,6 +75,14 @@ public:
 
     const char *error_str()
         { return mysql_error(&mysql); }
+
+    // mysql_escape_string() is forbidden.
+    // This method is using mysq_real_escape_string()
+    unsigned long escape_string(char *to, const char *from,
+                                     unsigned long length)
+        { return mysql_real_escape_string(&mysql, to, from, length); }
+
+    std::string escape_string(const std::string &str);
 
     unsigned int field_count()
         { return mysql_field_count(&mysql); }
@@ -125,6 +135,10 @@ public:
 
     void options(enum mysql_option option, const void *arg);
 
+#   if 50600 <= MYSQL_VERSION_ID
+    void options4(enum mysql_option option, const void *arg1, const void *arg2);
+#   endif
+
     void ping()
         { CC(); if (mysql_ping(&mysql)) throw_exception(); }
 
@@ -140,11 +154,31 @@ public:
     void query(const std::string &sql)
         { return query(sql.data(), sql.size()); }
 
-    unsigned long escape_string(char *to, const char *from,
+    // In MariaCpp: real_escape_string() == escape_string()
+    unsigned long real_escape_string(char *to, const char *from,
                                      unsigned long length)
         { return mysql_real_escape_string(&mysql, to, from, length); }
 
-    std::string escape_string(const std::string &str);
+    std::string real_escape_string(const std::string &str)
+        { return escape_string(str); }
+
+    // In MariaCpp: real_connect() == connect()
+    void real_connect(const Uri &uri, const char *usr, const char *passwd,
+                      unsigned long clientflag = 0)
+        { return connect(uri, usr, passwd, clientflag); }
+
+    void real_connect(const char *host,
+                 const char *user,
+                 const char *passwd,
+                 const char *db,
+                 unsigned int port,
+                 const char *unix_socket,
+                 unsigned long cliflag)
+        { return connect(host, user, passwd, db, port, unix_socket, cliflag); }
+
+    // In MariaCpp: real_query(sql, length) == query(sql, length)
+    void real_query(const char *sql, unsigned long length)
+        { return query(sql, length); }
 
     void refresh(unsigned int options)
         { CC(); if (mysql_refresh(&mysql, options)) throw_exception();}
@@ -199,7 +233,9 @@ public:
 
     const char *stat();
 
-    PreparedStatement *stmt_init();
+    // Don't call stmt_init() directly.
+    // Instead use: prepare(sql) or new PreparedStatment(*this)
+    MYSQL_STMT *stmt_init();
 
     ResultSet *store_result();
 
