@@ -175,7 +175,7 @@ Bind::init(MYSQL_FIELD *field)
 unsigned long
 Bind::data_length() const
 {
-    return std::min(_length, _buffer.size(_heap));
+    return std::min<size_t>(_length, _buffer.size(_heap));
 }
 
 
