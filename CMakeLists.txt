@@ -17,7 +17,7 @@
 #  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 # ****************************************************************************
 
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.8.12)
 PROJECT(mariacpp)
 
 SET(CPACK_PACKAGE_VERSION_MAJOR 1)
