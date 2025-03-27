@@ -136,7 +136,7 @@ int main()
         int c = counter;
         pthread_mutex_unlock(&mutex);
         if (c == num_threads) break;
-        pthread_yield();
+        sched_yield();
         if (now + 3 < time(NULL)) {
             std::cerr << "TIMEOUT" << std::endl;
             exit(EXIT_FAILURE);
